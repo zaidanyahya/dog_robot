@@ -2,6 +2,21 @@ from setuptools import find_packages, setup
 
 package_name = "dog_robot"
 
+NODE_LIST = {}
+
+
+def name_helper(module: str, node_name: str):
+    return f"{node_name} = {package_name}.{module}.{node_name}:main"
+
+
+def entry_points_helper():
+    entry_points = []
+    for module, nodes in NODE_LIST.items():
+        for node in nodes:
+            entry_points.append(name_helper(module, node))
+    return entry_points
+
+
 setup(
     name=package_name,
     version="0.0.0",
@@ -18,6 +33,6 @@ setup(
     license="MIT",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [],
+        "console_scripts": entry_points_helper(),
     },
 )
