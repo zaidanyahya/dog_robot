@@ -1,3 +1,4 @@
+# ROS2 Libraries
 import rclpy
 from rclpy.client import Client
 from rclpy.node import Node
@@ -8,6 +9,7 @@ from lifecycle_msgs.msg import Transition
 from lifecycle_msgs.srv import ChangeState
 from lifecycle_msgs.srv import GetState
 
+# Constants
 NODE_NAME = "motor_client_async"
 GET_STATE = "/raspimouse/get_state"
 CHANGE_STATE = "/raspimouse/change_state"

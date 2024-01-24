@@ -4,7 +4,11 @@ from setuptools import find_packages, setup
 
 package_name = "dog_robot"
 
-NODE_LIST = {"movement": ["motor_client_async"], "sound": ["random_sound"]}
+NODE_LIST = {
+    "distance": ["distance_assessment", "distance_input"],
+    "movement": ["motor_client_async"],
+    "sound": ["random_sound"],
+}
 
 
 def name_helper(module: str, node_name: str):
