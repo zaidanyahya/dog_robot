@@ -43,6 +43,6 @@ setup(
     license="MIT",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": ["random_sound = dog_robot.sound.random_sound:main"],
+        "console_scripts": entry_points_helper(),
     },
 )
