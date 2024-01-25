@@ -5,9 +5,11 @@ from setuptools import find_packages, setup
 package_name = "dog_robot"
 
 NODE_LIST = {
+    "color": ["color_input"],
     "distance": ["distance_assessment", "distance_input"],
-    "movement": ["motor_client_async"],
+    "movement": ["motor_client_async", "movement_controller"],
     "sound": ["random_sound"],
+    "target_tracker": ["image_capture", "target_monitor", "target_recognition"],
 }
 
 

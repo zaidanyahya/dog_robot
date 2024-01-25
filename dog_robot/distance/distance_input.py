@@ -44,11 +44,11 @@ class DistanceInput(Node):
 def main():
     rclpy.init()
 
-    client = DistanceInput()
+    node = DistanceInput()
 
-    rclpy.spin(client)
+    rclpy.spin(node)
 
-    client.destroy_node()
+    node.destroy_node()
     rclpy.shutdown()
 
 

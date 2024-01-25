@@ -43,11 +43,11 @@ class DistanceAssessment(Node):
 def main():
     rclpy.init()
 
-    client = DistanceAssessment()
+    node = DistanceAssessment()
 
-    rclpy.spin(client)
+    rclpy.spin(node)
 
-    client.destroy_node()
+    node.destroy_node()
     rclpy.shutdown()
 
 

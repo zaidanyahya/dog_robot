@@ -12,6 +12,12 @@ from dog_robot.sound.random_sound import NODE_NAME as random_sound
 def generate_launch_description():
     name = " ".join(PACKAGE_NAME.split("_")).capitalize()
 
+    color_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([ThisLaunchFileDir(), "color.launch.py"])
+        )
+    )
+
     distance_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([ThisLaunchFileDir(), "distance.launch.py"])
@@ -28,11 +34,19 @@ def generate_launch_description():
         package=PACKAGE_NAME, namespace=PACKAGE_NAME, executable=random_sound
     )
 
+    target_tracker_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([ThisLaunchFileDir(), "target_tracker.launch.py"])
+        )
+    )
+
     return LaunchDescription(
         [
             LogInfo(msg=f"{name} starting...."),
+            color_launch,
             distance_launch,
             movement_launch,
             random_sound_node,
+            target_tracker_launch,
         ]
     )

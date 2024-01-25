@@ -82,11 +82,11 @@ class MotorClientAsnyc(Node):
 def main():
     rclpy.init()
 
-    client = MotorClientAsnyc()
+    node = MotorClientAsnyc()
 
-    rclpy.spin(client)
+    rclpy.spin(node)
 
-    client.destroy_node()
+    node.destroy_node()
     rclpy.shutdown()
 
 
