@@ -1,8 +1,9 @@
+import time
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
-from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import Float64MultiArray
 
 # Constants
 NODE_NAME = "movement_controller"
@@ -27,7 +28,7 @@ class MovementController(Node):
             Bool, DISTANCE_AS, self.brake_callback, 10
         )
         self.direction_sub = self.create_subscription(
-            Int32MultiArray, DIRECTION, self.direction_callback, 10
+            Float64MultiArray, DIRECTION, self.direction_callback, 10
         )
 
         # Raspimouse Movement Instruction Publisher
@@ -36,16 +37,20 @@ class MovementController(Node):
         self.brake = True
         self.forward_backward_direction = 0
         self.angular_direction = 0
+        self.search_called = False
+        self.search_time = time.time()
+        self.search_duration = 10000
 
         self.create_timer(TIMER_PERIOD, self.raspimouse_control)
 
     def brake_callback(self, msg: Bool):
         new_brake = bool(msg.data)
         if not self.brake and new_brake:
+            self.logger.info(f"new_brake:{new_brake}")
             self.random_rotation()
-            self.brake = new_brake
+        self.brake = new_brake
 
-    def direction_callback(self, msg: Int32MultiArray):
+    def direction_callback(self, msg: Float64MultiArray):
         self.forward_backward_direction = msg.data[0]
         self.angular_direction = msg.data[1]
 
@@ -54,7 +59,14 @@ class MovementController(Node):
             return
 
         if self.forward_backward_direction == 0:
-            self.search()
+            if not self.search_called:
+                self.search_called = True
+                self.search_time = time.time()
+            else:
+                if time.time() - self.search_time > self.search_duration:
+                    self.stop()
+                else:
+                    self.search()
         else:
             self.move()
 
@@ -63,6 +75,10 @@ class MovementController(Node):
 
     def random_rotation(self):
         self.rotate(RANDOM_ROT_ANGULAR_SPEED, RANDOM_ROT_ANGULAR_DIRECTION)
+
+    def stop(self):
+        msg = Twist()
+        self.motion_publisher.publish(msg)
 
     def rotate(self, speed: float, direction: float):
         msg = Twist()

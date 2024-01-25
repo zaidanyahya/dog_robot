@@ -1,3 +1,6 @@
+# Standard Libraries
+import time
+
 # ROS2 Libraries
 import rclpy
 from rclpy.node import Node
@@ -36,6 +39,7 @@ class DistanceInput(Node):
                 msg.data = list(map(int, f.read().split()))
         except:
             self.logger.error(f"Light sensor: {LIGHT_SENSOR} is not found")
+            time.sleep(1)
 
         # メッセージをパブリッシュ
         self.publisher.publish(msg)

@@ -6,7 +6,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int32
-from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import Float64MultiArray
 
 # Other Libraries
 import cv2
@@ -21,6 +21,7 @@ COLOR = "color_topic"
 DIRECTION = "direction_topic"
 MIN_COLOR = 1
 MAX_COLOR = 3
+ROTATION_VEL = 0.25 * math.pi
 
 
 class TargetHSV:
@@ -41,7 +42,7 @@ class TargetRecognition(Node):
 
         # Publishers
         self.processed_image_pub = self.create_publisher(Image, PROCESSED_IMG, 1)
-        self.direction_pub = self.create_publisher(Int32MultiArray, DIRECTION, 10)
+        self.direction_pub = self.create_publisher(Float64MultiArray, DIRECTION, 10)
 
         # Open CV Bridge
         self.cv_bridge = CvBridge()
@@ -61,11 +62,13 @@ class TargetRecognition(Node):
         # Node State
         self.cv_image = None
         self.target_color = 0
+        self.start = False
 
     def color_callback(self, msg: Int32):
         color = msg.data
         if color >= MIN_COLOR and color <= MAX_COLOR:
             self.target_color = color
+            self.start = True
         else:
             self.target_color = 0
 
@@ -160,12 +163,16 @@ class TargetRecognition(Node):
     # raspimouseへの制御命令を送信する関数
     #
     def direction_control(self):
-        msg = Int32MultiArray()
-        forward_backward_direction = 0
+        msg = Float64MultiArray()
+        forward_backward_direction = 0.0
         rotation_vel = self.compute_rotation_vel()
+        start = 0.0
         if self.object_is_detected():
             forward_backward_direction = 1
-        msg.data = [forward_backward_direction, rotation_vel]
+        if self.start:
+            start = 1.0
+            self.start = False
+        msg.data = [start, forward_backward_direction, rotation_vel]
         self.direction_pub.publish(msg)
 
     # 物体を検出したかどうか
@@ -177,35 +184,15 @@ class TargetRecognition(Node):
         )
         return self.object_ratio > low_limit
 
-    # # 物体の基準サイズを設定
-    # def init_object_pixels_default(self):
-    #     if self.default_object_pixels == 0 and self.object_pixels != 0:
-    #         if self.object_ratio > 0.05 and self.object_ratio < 0.5:
-    #             self.default_object_pixels = self.object_pixels
-
-    # # 物体の大きさの差を計算
-    # def compute_pixel_ratio(self) -> float:
-    #     if self.default_object_pixels != 0:
-    #         diff = self.object_pixels - self.default_object_pixels
-    #         return diff / (self.cv_image.shape[0] * self.cv_image.shape[1])
-    #     else:
-    #         return 0.0
-
-    # # 基準よりも大きいか
-    # def is_bigger_than_default(self):
-    #     return self.compute_pixel_ratio() > 0.01
-
-    # # 基準よりも小さいか
-    # def is_smaller_than_default(self):
-    #     return self.compute_pixel_ratio() < -0.01
-
     # 回転量を計算する関数
     def compute_rotation_vel(self):
-        vel = 0.25 * math.pi
+        if self.cv_image is None or self.target_color == 0:
+            return 0.0
+
         half_width = self.cv_image.shape[1] / 2.0
         pos_x_rate = (half_width - self.object_centroid[0]) / half_width
 
-        return pos_x_rate * vel
+        return pos_x_rate * ROTATION_VEL
 
 
 def main():
