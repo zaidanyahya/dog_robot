@@ -21,7 +21,7 @@ COLOR = "color_topic"
 DIRECTION = "direction_topic"
 MIN_COLOR = 1
 MAX_COLOR = 3
-ROTATION_VEL = 0.25 * math.pi
+LOW_LIMIT = 0.01
 
 
 class TargetHSV:
@@ -160,39 +160,37 @@ class TargetRecognition(Node):
         return [x, y]
 
     #
-    # raspimouseへの制御命令を送信する関数
+    # movement_controller への制御命令を送信する関数
     #
     def direction_control(self):
         msg = Float64MultiArray()
         forward_backward_direction = 0.0
-        rotation_vel = self.compute_rotation_vel()
+        pos_x_rate = self.compute_pos_x_rate()
         start = 0.0
         if self.object_is_detected():
             forward_backward_direction = 1
         if self.start:
             start = 1.0
             self.start = False
-        msg.data = [start, forward_backward_direction, rotation_vel]
+        msg.data = [start, forward_backward_direction, pos_x_rate]
         self.direction_pub.publish(msg)
 
     # 物体を検出したかどうか
     def object_is_detected(self):
-        low_limit = 0.01  # 0.01
-
         self.object_ratio = self.object_pixels / (
             self.cv_image.shape[0] * self.cv_image.shape[1]
         )
-        return self.object_ratio > low_limit
+        return self.object_ratio > LOW_LIMIT
 
-    # 回転量を計算する関数
-    def compute_rotation_vel(self):
+    # X軸相対位置を計算する関数
+    def compute_pos_x_rate(self):
         if self.cv_image is None or self.target_color == 0:
             return 0.0
 
         half_width = self.cv_image.shape[1] / 2.0
         pos_x_rate = (half_width - self.object_centroid[0]) / half_width
 
-        return pos_x_rate * ROTATION_VEL
+        return pos_x_rate
 
 
 def main():

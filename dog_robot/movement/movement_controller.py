@@ -1,7 +1,11 @@
+# Standard Libraries
+import math
 import time
+
+# ROS2 Libraries
 import rclpy
-from rclpy.node import Node
 from geometry_msgs.msg import Twist
+from rclpy.node import Node
 from std_msgs.msg import Bool
 from std_msgs.msg import Float64MultiArray
 
@@ -12,11 +16,9 @@ DIRECTION = "direction_topic"
 CMD_VEL = "/cmd_vel"
 TIMER_PERIOD = 0.03
 LINEAR_SPEED = 0.1
-ANGULAR_SPEED = 2.0
-SEARCH_ANGULAR_SPEED = 2.0
-SEARCH_ANGULAR_DIRECTION = 2.0
-RANDOM_ROT_ANGULAR_SPEED = 2.0
-RANDOM_ROT_ANGULAR_DIRECTION = 2.0
+ANGULAR_SPEED = 0.5 * math.pi
+SEARCH_ANGULAR_VEL = math.pi
+RANDOM_ROT_ANGULAR_VEL = math.pi
 
 
 class MovementController(Node):
@@ -71,18 +73,18 @@ class MovementController(Node):
             self.move()
 
     def search(self):
-        self.rotate(SEARCH_ANGULAR_SPEED, SEARCH_ANGULAR_DIRECTION)
+        self.rotate(SEARCH_ANGULAR_VEL)
 
     def random_rotation(self):
-        self.rotate(RANDOM_ROT_ANGULAR_SPEED, RANDOM_ROT_ANGULAR_DIRECTION)
+        self.rotate(RANDOM_ROT_ANGULAR_VEL)
 
     def stop(self):
         msg = Twist()
         self.motion_publisher.publish(msg)
 
-    def rotate(self, speed: float, direction: float):
+    def rotate(self, velocity: float):
         msg = Twist()
-        msg.angular.z = speed * direction
+        msg.angular.z = velocity
         self.motion_publisher.publish(msg)
 
     def move(self):
