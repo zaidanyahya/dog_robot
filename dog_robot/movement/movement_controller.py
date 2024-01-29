@@ -11,23 +11,24 @@ from std_msgs.msg import Float64MultiArray
 
 # Constants
 NODE_NAME = "movement_controller"
-DISTANCE_AS = "distanceAs_topic"
+BRAKE = "brake_topic"
 DIRECTION = "direction_topic"
 CMD_VEL = "/cmd_vel"
-TIMER_PERIOD = 0.03
 LINEAR_SPEED = 0.1
-ANGULAR_SPEED = 0.5 * math.pi
-SEARCH_ANGULAR_VEL = math.pi
+ANGULAR_SPEED = 0.1 * math.pi
+SEARCH_ANGULAR_VEL = 0.5 * math.pi
 RANDOM_ROT_ANGULAR_VEL = math.pi
 
 
+# Raspimouse movement controller Node
 class MovementController(Node):
     def __init__(self):
         super().__init__(NODE_NAME)
         self.logger = self.get_logger()
 
+        # Subcriptions
         self.distance_as_sub = self.create_subscription(
-            Bool, DISTANCE_AS, self.brake_callback, 10
+            Bool, BRAKE, self.brake_callback, 10
         )
         self.direction_sub = self.create_subscription(
             Float64MultiArray, DIRECTION, self.direction_callback, 10
@@ -36,60 +37,60 @@ class MovementController(Node):
         # Raspimouse Movement Instruction Publisher
         self.motion_publisher = self.create_publisher(Twist, CMD_VEL, 1)
 
+        # Internal State
         self.brake = True
-        self.forward_backward_direction = 0
+        self.forward_direction = 0
         self.angular_direction = 0
         self.search_called = False
         self.search_time = time.time()
-        self.search_duration = 10000
+        self.search_duration = 1000
+        self.start = 0
 
-        self.create_timer(TIMER_PERIOD, self.raspimouse_control)
-
+    # brake_topic callback
     def brake_callback(self, msg: Bool):
-        new_brake = bool(msg.data)
-        if not self.brake and new_brake:
-            self.logger.info(f"new_brake:{new_brake}")
-            self.random_rotation()
-        self.brake = new_brake
+        self.brake = bool(msg.data)
 
+    # direction_topic callback
     def direction_callback(self, msg: Float64MultiArray):
-        self.forward_backward_direction = msg.data[0]
-        self.angular_direction = msg.data[1]
+        self.start = msg.data[0]
+        self.forward_direction = msg.data[1]
+        self.angular_direction = msg.data[2]
+        self.raspimouse_control()
 
+    # Control logic for Raspimouse motor
     def raspimouse_control(self):
         if self.brake:
+            self.stop()
             return
 
-        if self.forward_backward_direction == 0:
-            if not self.search_called:
-                self.search_called = True
-                self.search_time = time.time()
-            else:
-                if time.time() - self.search_time > self.search_duration:
-                    self.stop()
-                else:
-                    self.search()
+        if self.forward_direction < 0.5 and self.start > 0.5:
+            self.search()
         else:
             self.move()
 
+    # Initiate search behavior
     def search(self):
         self.rotate(SEARCH_ANGULAR_VEL)
 
+    # Random rotation behavior
     def random_rotation(self):
         self.rotate(RANDOM_ROT_ANGULAR_VEL)
 
+    # Stop Raspimouse movement
     def stop(self):
         msg = Twist()
         self.motion_publisher.publish(msg)
 
+    # Rotate Raspimouse at a given angular velocity
     def rotate(self, velocity: float):
         msg = Twist()
         msg.angular.z = velocity
         self.motion_publisher.publish(msg)
 
+    # Move Raspimouse forward with a certain linear and angular speed
     def move(self):
         msg = Twist()
-        msg.linear.x = LINEAR_SPEED * self.forward_backward_direction
+        msg.linear.x = LINEAR_SPEED
         msg.angular.z = ANGULAR_SPEED * self.angular_direction
         self.motion_publisher.publish(msg)
 

@@ -8,12 +8,11 @@ import cv2
 from cv_bridge import CvBridge
 
 NODE_NAME = "image_capture"
+IMAGE_CAP = "image_capture_topic"
 CAMERA_DEVICE = 0
 CAP_PROP_FPS = 30
 CAP_PROP_FRAME_WIDTH = 640
 CAP_PROP_FRAME_HEIGHT = 480
-
-IMAGE_CAP = "image_capture_topic"
 
 
 class ImageCapture(Node):
@@ -21,16 +20,17 @@ class ImageCapture(Node):
         super().__init__(NODE_NAME)
         self.logger = self.get_logger()
 
+        # Publishers
         self.image_publisher = self.create_publisher(Image, IMAGE_CAP, 1)
 
+        # Capture Setting
         timer_period = 0.03
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.cv_bridge = CvBridge()
-
         self.capture = None
-
         self.init_camera()
 
+    # Camera Setting
     def init_camera(self):
         try:
             self.capture = cv2.VideoCapture(CAMERA_DEVICE)
@@ -43,6 +43,7 @@ class ImageCapture(Node):
         except Exception as e:
             self.logger.error(e)
 
+    # Timer callback to capture from camera
     def timer_callback(self):
         ret, image = self.capture.read()
         if ret:

@@ -7,7 +7,7 @@ from std_msgs.msg import Int32MultiArray
 # Constants
 NODE_NAME = "distance_assessment"
 DISTANCE_IN = "distanceIn_topic"
-DISTANCE_AS = "distanceAs_topic"
+BRAKE = "brake_topic"
 LIGHT_SENSOR = "/dev/rtlightsensor0"
 LINE = 100
 
@@ -24,7 +24,7 @@ class DistanceAssessment(Node):
         )
 
         # パブリシャーの設定
-        self.publisher = self.create_publisher(Bool, DISTANCE_AS, 10)
+        self.publisher = self.create_publisher(Bool, BRAKE, 10)
 
     # "distanceIn_topic" からのメッセージを処理するコールバック関数
     def light_callback(self, msg: Int32MultiArray):

@@ -5,8 +5,8 @@ from std_msgs.msg import Int32
 
 # Constants
 NODE_NAME = "color_input"
-JOY = "joy"
-COLOR_TOPIC = "/color_topic"
+JOY = "/joy"
+COLOR_TOPIC = "color_topic"
 
 
 class ColorInput(Node):
@@ -33,6 +33,8 @@ class ColorInput(Node):
             color = 2
         elif e == 1:
             color = 3
+        elif e == -1:
+            color = 4
         self.logger(f"c:{color}")
 
         self.color.data = color

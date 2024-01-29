@@ -1,6 +1,3 @@
-# Standard Libraries
-import math
-
 # ROS2 Libraries
 import rclpy
 from rclpy.node import Node
@@ -20,8 +17,9 @@ PROCESSED_IMG = "processed_image_topic"
 COLOR = "color_topic"
 DIRECTION = "direction_topic"
 MIN_COLOR = 1
-MAX_COLOR = 3
+MAX_COLOR = 4
 LOW_LIMIT = 0.01
+HIGH_LIMIT = 0.5
 
 
 class TargetHSV:
@@ -54,24 +52,28 @@ class TargetRecognition(Node):
         purple = TargetHSV(min_val=(138, 86, 139), max_val=(156, 255, 255))
         self.colors = [default, green, blue, purple]
 
-        self.default_object_pixels = 0
+        # Object State
         self.object_pixels = 0
         self.object_centroid = [0, 0]
         self.object_ratio = 0
 
-        # Node State
+        # Internal State
         self.cv_image = None
         self.target_color = 0
-        self.start = False
+        self.start = 0.0
 
+    # color_topic callback
     def color_callback(self, msg: Int32):
         color = msg.data
         if color >= MIN_COLOR and color <= MAX_COLOR:
+            if color == 4:
+                self.target_color = 0
+                self.start = 0.0
+                return
             self.target_color = color
-            self.start = True
-        else:
-            self.target_color = 0
+            self.start = 1.0
 
+    # image_capture_topic callback
     def image_callback(self, image):
         self.cv_image = self.cv_bridge.imgmsg_to_cv2(image, "bgr8")
 
@@ -80,12 +82,12 @@ class TargetRecognition(Node):
 
             if contour is not False:
                 self.object_centroid = self.compute_centroid(contour)
-
+                self.object_pixels = cv2.contourArea(contour)
                 self.draw_contours(self.cv_image, contour)
                 self.draw_target_bounding_box(self.cv_image, contour)
                 self.draw_centroid(self.cv_image, self.object_centroid)
-
-                self.init_object_pixels_default()
+            else:
+                self.object_pixels = 0
 
             self.processed_image_pub.publish(
                 self.cv_bridge.cv2_to_imgmsg(self.cv_image, "bgr8")
@@ -93,9 +95,11 @@ class TargetRecognition(Node):
 
             self.direction_control()
 
+    # Draw Target Contour
     def draw_contours(self, cv_image, contours):
         cv2.drawContours(cv_image, contours, -1, (0, 255, 0), 2)
 
+    # Draw Target Center Mass
     def draw_centroid(self, cv_image, centroid):
         cv2.circle(self.cv_image, self.object_centroid, 2, (0, 0, 255), 2)
 
@@ -164,15 +168,13 @@ class TargetRecognition(Node):
     #
     def direction_control(self):
         msg = Float64MultiArray()
-        forward_backward_direction = 0.0
-        pos_x_rate = self.compute_pos_x_rate()
-        start = 0.0
+        forward_direction = 0.0
+        pos_x_rate = 0.0
         if self.object_is_detected():
-            forward_backward_direction = 1
-        if self.start:
-            start = 1.0
-            self.start = False
-        msg.data = [start, forward_backward_direction, pos_x_rate]
+            pos_x_rate = self.compute_pos_x_rate()
+            forward_direction = 1.0
+
+        msg.data = [self.start, forward_direction, pos_x_rate]
         self.direction_pub.publish(msg)
 
     # 物体を検出したかどうか
@@ -180,7 +182,8 @@ class TargetRecognition(Node):
         self.object_ratio = self.object_pixels / (
             self.cv_image.shape[0] * self.cv_image.shape[1]
         )
-        return self.object_ratio > LOW_LIMIT
+
+        return self.object_ratio > LOW_LIMIT and self.object_ratio < HIGH_LIMIT
 
     # X軸相対位置を計算する関数
     def compute_pos_x_rate(self):
